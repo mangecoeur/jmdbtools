@@ -1,3 +1,22 @@
+/*
+ JMdbTools
+ Copyright (c) 2013, J. Chambers, All rights reserved.
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 3.0 of the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library.
+ */
+
+
 package jmdbtools;
 
 import com.healthmarketscience.jackcess.*;
@@ -18,14 +37,8 @@ import java.util.Date;
 
 /**
  *
- * Next:
- * can use built in export tools to dump CSV
- * add ability to process whole folder
- * add command line interface
- * opt: dump to SQL or hdf5
  *
  *
- * User: jonathanchambers
  * Date: 25/11/2013
  */
 public class JMdbTools {

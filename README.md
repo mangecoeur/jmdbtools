@@ -38,5 +38,10 @@ Building
 --------
 
 JMdbTools is a Maven project. You can run it with the exec plugin using -Dargs to supply the required arguments, or you
-can use the assembly plugin maven-assembly-plugin:single goal to generate the standalone jar package. 
+can use the assembly plugin maven-assembly-plugin:single goal to generate the standalone jar package.
 
+
+Licence
+-------
+
+LGPL 3.0
