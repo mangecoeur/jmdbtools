@@ -43,20 +43,65 @@ import java.util.Date;
  */
 public class JMdbTools {
 
+    public static void main(String[] args) {
+        System.out.println("[INFO] Starting mdb file processing");
+        Options options = createOptions();
+        CommandLineParser parser = new BasicParser();
+        try {
+            CommandLine cmd = parser.parse(options, args);
+
+            JMdbTools tool = new JMdbTools(cmd);
+
+
+            if (cmd.hasOption("s")) {
+                tool.showStats();
+            }
+
+            //export to mysql
+            if (cmd.hasOption("db")) {
+                tool.exportSQL();
+            }
+
+            if (cmd.hasOption("e")) {
+                tool.exportCSV();
+            }
+
+
+        } catch (ParseException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
+
+    private static Options createOptions(){
+        // create Options object
+        Options options = new Options();
+
+        // add t option
+        //options.addOption("f", true, "input mdb file path");
+        options.addOption("s", false, "show file stats");
+        options.addOption("db", true, "export to database");
+        options.addOption("csv", false, "export csv file");
+
+        options.addOption("o", false, "overwrite existing tables");
+        options.addOption("tp", true, "table prefix");
+        options.addOption("u", true, "database username");
+        options.addOption("p", true, "database password");
+
+        return options;
+    }
+
     public String filePath;
     public Database db;
 
     public String tablePrefix = "";
-    public String dbUsername = "root";
-    public String dbPassword = null;
-    public String dbName = null;
-    public Boolean dbOverwrite = null;
-
+    public String dbUsername;
+    public String dbPassword;
+    public String dbUrl;
+    public Boolean dbOverwrite = false;
 
     public JMdbTools(CommandLine cmd){
-        filePath = cmd.getOptionValue("f");
-        loadDB();
         processOptions(cmd);
+        loadDB();
     }
 
     //replace MySQL reserved names with acceptable alternative
@@ -71,7 +116,6 @@ public class JMdbTools {
         }
     }
 
-
     private String fixTableName(String tableName) {
         if (tablePrefix.equalsIgnoreCase("")) {
             return tableName;
@@ -80,75 +124,27 @@ public class JMdbTools {
         }
     }
 
-
-    public static void main(String[] args) {
-        System.out.println("[INFO] Starting mdb file processing");
-        Options options = createOptions();
-        CommandLineParser parser = new BasicParser();
-        try {
-            CommandLine cmd = parser.parse(options, args);
-
-            if (cmd.hasOption("f")) {
-
-                JMdbTools tool = new JMdbTools(cmd);
-
-                tool.processOptions(cmd);
-
-                if (cmd.hasOption("s")) {
-                    tool.showStats();
-                }
-                //export
-                if (cmd.hasOption("e")) {
-                    tool.exportCSV();
-                }
-
-                //export to mysql
-                if (cmd.hasOption("db")) {
-
-                    tool.exportToMySQL();
-                }
-
-            } else {
-                System.out.println("[ERROR] No file parameter given!");
-
-            }
-        } catch (ParseException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-    }
-
-    private static Options createOptions(){
-        // create Options object
-        Options options = new Options();
-
-        // add t option
-        options.addOption("f", true, "input mdb file path");
-        options.addOption("s", false, "show file stats");
-        options.addOption("e", false, "export file");
-        options.addOption("db", true, "export to database");
-        options.addOption("u", true, "database username");
-        options.addOption("p", true, "database password");
-        options.addOption("o", false, "overwrite existing tables");
-        options.addOption("tp", true, "table prefix");
-
-        return options;
-    }
-
     private void processOptions(CommandLine cmd){
         if (cmd.hasOption("tp")) {
             tablePrefix = cmd.getOptionValue("tp");
         }
         if (cmd.hasOption("db")) {
-            dbName = cmd.getOptionValue("db");
+            dbUrl = cmd.getOptionValue("db");
         }
         if (cmd.hasOption("o")) {
             dbOverwrite = true;
         }
         if (cmd.hasOption("u")) {
-            dbUsername = cmd.getOptionValue("u", "root");
+            dbUsername = cmd.getOptionValue("u", null);
         }
         if (cmd.hasOption("p")) {
             dbPassword = cmd.getOptionValue("p", null);
+        }
+        List<String> argList = cmd.getArgList();
+        if (argList.isEmpty()) {
+            log("No file parameter given!", "error");
+        } else {
+            filePath = argList.get(argList.size() - 1);
         }
     }
 
@@ -157,14 +153,15 @@ public class JMdbTools {
             File file = new File(filePath);
             db = DatabaseBuilder.open(file);
 
-            log("# Loaded database from file: " + file.getName(), "info");
+            log("Loaded database from file: " + file.getName(), "info");
         } catch (IOException e) {
+            log("Could not load MDB file!", "error");
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
 
     private void showStats() {
-        Set<String> tableNames = null;
+        Set<String> tableNames;
         try {
             tableNames = db.getTableNames();
             for(String tableName: tableNames) {
@@ -206,10 +203,9 @@ public class JMdbTools {
         }
     }
 
-    private void exportToMySQL(){
+    private void exportSQL(){
         try {
-            System.out.println(dbName);
-            Connection conn = connectToMySQL(dbName, dbUsername, dbPassword);
+            Connection conn = getConnection();
 
             DbSchema tableSet = createDbSchema();
 
@@ -222,32 +218,33 @@ public class JMdbTools {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         } finally {
             //finally block used to close resources
-                //conn.close();
+            //conn.close();
 
         }
     }
 
-    private Connection connectToMySQL(String dbName, String user, String pass){
-        // Initialize MYSQL java driver
-        try {
+    private Connection getConnection(){
+        /*try {
             Class.forName("com.mysql.jdbc.Driver").newInstance();
         } catch (InstantiationException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            e.printStackTrace();
         } catch (IllegalAccessException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            e.printStackTrace();
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
+            log("No MySQL Driver");
+        }*/
 
         Connection conn = null;
         try {
-            String connectionString = "jdbc:mysql://" + dbName + "?user=" + user;
-
-            if (pass != null) {
-                connectionString =  connectionString +"&password=" + pass;
+            Properties prop = new Properties();
+            if (dbUsername != null) {
+                prop.setProperty("user", dbUsername);
+            }
+            if (dbPassword != null) {
+                prop.setProperty("password", dbPassword);
             }
 
-            conn = DriverManager.getConnection(connectionString);
+            conn = DriverManager.getConnection(dbUrl, prop);
         } catch (SQLException e) {
             log("SQLException: " + e.getMessage(), "error");
             log("SQLState: " + e.getSQLState(), "error");
@@ -284,15 +281,20 @@ public class JMdbTools {
 
         for(Column column : table.getColumns()) {
             //System.out.println("[INFO] ADDING Column " + column.getName() + "(" + column.getType() + ")");
-
-            String columnType = "TEXT";
-            if (column.getType() == DataType.SHORT_DATE_TIME) {
-                //TODO: distinguish between DATE and DATETIME (?)
-                columnType = "DATETIME"; //Dicking about with Datetime for MYSQL
-            } else {
-                columnType = column.getType().name();
+            int columnType = 0;
+            try {
+                columnType = column.getType().getSQLType();
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-            customerTable.addColumn(fixColumnName(column.getName()), columnType, null);
+
+            if (columnType == Types.DOUBLE) {
+                //DOUBLE is not ANSI - should be DOUBLE PRECISION
+                customerTable.addColumn(fixColumnName(column.getName()), "DOUBLE PRECISION", null);
+
+            } else {
+                customerTable.addColumn(fixColumnName(column.getName()), columnType, null);
+            }
         }
 
         return customerTable;
@@ -303,11 +305,9 @@ public class JMdbTools {
         Statement stmt = conn.createStatement();
         for(DbTable dbTable : schema.getTables()) {
             String createTableSql = new CreateTableQuery(dbTable, true).validate().toString();
-
-            //TODO: DANGEROUS: auto override tables. Add explicit option to enable
             if (dbOverwrite) {
                 log("Dropping existing table", "warn");
-                stmt.executeUpdate("DROP TABLE IF EXISTS `" + dbTable.getName() + "`");
+                stmt.executeUpdate("DROP TABLE IF EXISTS " + dbTable.getName() + "");
                 log("creating table:" + dbTable.getName(), "info");
                 stmt.executeUpdate(createTableSql);
             } else {
@@ -318,7 +318,7 @@ public class JMdbTools {
                     log("Table already exists:" + dbTable.getName(), "info");
 
                 } else {
-                    log("creating table:" + dbTable.getName(), "info");
+                    log("creating table: \"" + dbTable.getName(), "\" info");
                     stmt.executeUpdate(createTableSql);
                 }
             }
@@ -336,7 +336,7 @@ public class JMdbTools {
     }
 
     private int[] insertData(Table dataTable, DbTable dbTable, Connection conn){
-        Statement stmt = null;
+        Statement stmt;
         int[] execStatus = new int[0];
         try {
             stmt = conn.createStatement();
@@ -351,7 +351,7 @@ public class JMdbTools {
 
                     if (col.getValue() != null){
                         if(column.getTypeNameSQL().equalsIgnoreCase("DATE") || column.getTypeNameSQL().equalsIgnoreCase("DATETIME")){
-                            java.sql.Timestamp sqlDate = new java.sql.Timestamp(((Date) col.getValue()).getTime());
+                            java.sql.Timestamp sqlDate = new java.sql.Timestamp(((java.util.Date) col.getValue()).getTime());
                             //log(sqlDate.toString(), "debug");
                             insertQuery.addColumn(column, sqlDate);
                         } else {
@@ -366,6 +366,7 @@ public class JMdbTools {
             execStatus = stmt.executeBatch();
         } catch (SQLException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            log(e.getNextException().getMessage(), "error");
         }
 
         return execStatus;

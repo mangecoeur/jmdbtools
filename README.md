@@ -14,7 +14,7 @@ You need Java 1.6+ , and you can run the jmdbtools.jar file directly.
 
 Run it using:
 
-java -jar jmdbtools.jar -f {mdb file names} -options
+java -jar jmdbtools.jar -f {mdb file names} -<options>
 
 Options are:
 
